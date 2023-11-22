@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Pixel War</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+        }
+        #menu {
+            width: 200px; /* Largeur fixe pour le menu */
+            background-color: #f8f9fa; /* Couleur de fond légère pour le menu */
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Ombre pour donner de la profondeur */
+        }
+        .menu-item {
+            margin-bottom: 15px;
+        }
+        #image-container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #image {
+            image-rendering: pixelated;
+            width: 1000px;
+            height: 750px;
+        }
+    </style>
+    <script>
+        let countdownTimer;
+
+        function updatePixel(type) {
+            const x = document.getElementById('x').value;
+            const y = document.getElementById('y').value;
+            const color = document.getElementById('color').value;
+
+            fetch('/update-pixel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ x, y, color, type }),
+            })
+                .then(response => response.text())
+                .then(data => {
+                    console.log(data);
+                    // alert(data);
+                    document.getElementById('image').src = '/image?' + new Date().getTime();
+                    fetchCooldown();
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+
+
+        }
+
+        function fetchCooldown() {
+            fetch('/cooldown')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.cooldown > 0) {
+                        updateCountdownDisplay(data.cooldown);
+                    }
+                })
+                .catch(error => console.error('Erreur:', error));
+        }
+
+        function updateCountdownDisplay(seconds) {
+            document.getElementById('countdown').innerText = seconds;
+            clearInterval(countdownTimer);
+            countdownTimer = setInterval(() => {
+                seconds--;
+                document.getElementById('countdown').innerText = seconds;
+                if (seconds <= 0) {
+                    clearInterval(countdownTimer);
+                }
+            }, 1000);
+        }
+
+        function resetCooldown() {
+            fetch('/reset-cooldown')
+                .then(response => response.text())
+                .then(data => {
+                    console.log(data);
+                    clearInterval(countdownTimer);
+                    updateCountdownDisplay(0);
+                })
+                .catch(error => console.error('Erreur:', error));
+        }
+
+        // Initial fetch to set up the countdown on page load
+        fetchCooldown();
+    </script>
+
+
+
+</head>
+<body>
+<div id="menu">
+    <h2>Actions</h2>
+    <div class="menu-item">
+        <label for="x">X:</label>
+        <input type="number" id="x" class="form-control" min="0" max="99" value="0">
+    </div>
+    <div class="menu-item">
+        <label for="y">Y:</label>
+        <input type="number" id="y" class="form-control" min="0" max="99" value="0">
+    </div>
+    <div class="menu-item">
+        <label for="color">Color:</label>
+        <input type="color" id="color" class="form-control">
+    </div>
+    <div class="menu-item">
+        <button onclick="updatePixel(0)" class="btn btn-primary btn-block">Update Pixel</button>
+    </div>
+    <div class="menu-item">
+        <button onclick="updatePixel(1)" class="btn btn-primary btn-block">Update Pixel Row</button>
+    </div>
+    <div class="menu-item">
+        <button onclick="updatePixel(2)" class="btn btn-primary btn-block">Update Pixel Col</button>
+    </div>
+    <div class="menu-item">
+        <button onclick="updatePixel(3)" class="btn btn-primary btn-block">Update Random Pixels</button>
+    </div>
+    <div class="menu-item">
+        <button onclick="resetCooldown()" class="btn btn-primary btn-block">Reset time (watching ads)</button>
+    </div>
+    <div class="menu-item">
+        <p>Time remaining before next action: <span id="countdown">0</span> secondes</p>
+    </div>
+</div>
+<div id="image-container">
+    <img id="image" src="/image" alt="Pixel War Image"/>
+</div>
+</body>
+</html>
